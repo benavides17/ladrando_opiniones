@@ -1,0 +1,73 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --color-bg-deep: 11 21 25;       /* #0B1519 - Azul petróleo ultra profundo */
+    --color-card-blue: 22 41 49;      /* #162931 - Azul petróleo para tarjetas */
+    --color-teal: 39 125 142;         /* #277D8E - Verde azulado de acento */
+    --color-menta: 159 211 203;       /* #9FD3CB - Menta suave */
+    --color-dorado: 238 183 86;       /* #EEB756 - Amarillo dorado */
+    --color-border-blue: 39 70 82;    /* #274652 - Bordes azulados sutiles */
+  }
+
+  body {
+    @apply bg-gradient-to-b from-[#0B1519] via-[#0E1E24] to-[#12242B] text-[#E2ECE9] antialiased min-h-screen flex flex-col font-sans;
+  }
+
+  /* Barra de desplazamiento azul moderna */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #0B1519;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #274652;
+    border-radius: 4px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #277D8E;
+  }
+}
+
+/* Efectos de brillo y profundidad */
+.glow-teal {
+  box-shadow: 0 0 25px -5px rgba(39, 125, 142, 0.35);
+}
+
+.glow-dorado {
+  box-shadow: 0 0 25px -5px rgba(238, 183, 86, 0.4);
+}
+
+.card-blue {
+  @apply bg-[#162931]/80 hover:bg-[#1A313B]/90 backdrop-blur-xl border border-[#274652]/70 hover:border-teal-500/50 shadow-xl transition-all duration-300;
+}
+
+/* Animaciones para las ondas de audio */
+@keyframes wave-pulse {
+  0%, 100% {
+    transform: scaleY(0.25);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+
+.animate-wave-1 {
+  animation: wave-pulse 1s ease-in-out infinite;
+}
+.animate-wave-2 {
+  animation: wave-pulse 1.2s ease-in-out infinite 0.15s;
+}
+.animate-wave-3 {
+  animation: wave-pulse 0.9s ease-in-out infinite 0.3s;
+}
+.animate-wave-4 {
+  animation: wave-pulse 1.4s ease-in-out infinite 0.45s;
+}
+.animate-wave-5 {
+  animation: wave-pulse 1.1s ease-in-out infinite 0.2s;
+}
