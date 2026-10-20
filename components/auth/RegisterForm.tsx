@@ -55,11 +55,16 @@ export function RegisterForm() {
 
     try {
       // 1. Verificar si el username ya está en uso en profiles
-      const { data: existingProfile } = await supabase
+      const { data: existingProfile, error: profileError } = await supabase
         .from('profiles')
         .select('username')
         .eq('username', data.username.toLowerCase())
         .maybeSingle();
+
+      if (profileError) {
+        setServerError(getAuthErrorMessage(profileError));
+        return;
+      }
 
       if (existingProfile) {
         setServerError('El nombre de usuario ya está en uso. Por favor elige otro.');

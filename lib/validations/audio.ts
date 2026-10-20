@@ -16,13 +16,14 @@ export const ALLOWED_AUDIO_MIME_TYPES = [
 ] as const;
 
 export const AUDIO_CATEGORIES = [
-  { value: 'animalista', label: 'Actividad animalista' },
-  { value: 'ayuda', label: 'Ayuda' },
-  { value: 'denuncias', label: 'Reportes por denuncia' },
+  { value: 'ayuda', label: '¿Quién tiene la voz?' },
 ] as const;
 
 export function getAudioCategoryLabel(value: string): string {
-  return AUDIO_CATEGORIES.find((category) => category.value === value)?.label || value;
+  if (value === 'ayuda' || value === 'animalista' || value === 'denuncias' || value === 'musica') {
+    return '¿Quién tiene la voz?';
+  }
+  return AUDIO_CATEGORIES.find((category) => category.value === value)?.label || '¿Quién tiene la voz?';
 }
 
 export const audioMetadataSchema = z.object({

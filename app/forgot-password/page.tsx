@@ -3,8 +3,8 @@ import { KeyRound, ArrowLeft } from 'lucide-react';
 import { ForgotPasswordForm } from '@/components/auth/ForgotPasswordForm';
 
 export const metadata = {
-  title: 'Recuperar contraseña — VozComún',
-  description: 'Solicita un enlace para restablecer el acceso a tu cuenta de VozComún.',
+  title: 'Recuperar contraseña — ladrando opiniones',
+  description: 'Solicita un enlace para restablecer el acceso a tu cuenta de ladrando opiniones.',
 };
 
 export default function ForgotPasswordPage() {

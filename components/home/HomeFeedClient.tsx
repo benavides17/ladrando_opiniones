@@ -22,7 +22,7 @@ export function HomeFeedClient() {
             </h1>
 
             <p className="max-w-2xl text-sm leading-7 text-petroleo-100 sm:text-base">
-              Comparte iniciativas animalistas, encuentra ayuda cuando la necesites y realiza reportes por denuncia para dar voz a quienes más lo necesitan.
+              Un espacio para compartir reflexiones, dialogar y dar voz a las diferentes perspectivas sobre la convivencia con los perros.
             </p>
 
             <div className="flex flex-wrap items-center gap-3 pt-2">

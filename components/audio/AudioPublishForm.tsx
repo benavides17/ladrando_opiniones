@@ -297,13 +297,13 @@ export function AudioPublishForm() {
 
         <Input
           label="Título del audio"
-          placeholder="ej. Mi primera reflexión sobre la música acústica"
+          placeholder="ej. Mi perspectiva sobre la convivencia con los perros"
           error={errors.title?.message}
           {...register('title')}
         />
 
         <Select
-          label="Categoría"
+          label="Sección"
           options={AUDIO_CATEGORIES}
           error={errors.category?.message}
           {...register('category')}
