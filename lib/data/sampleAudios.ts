@@ -12,6 +12,7 @@ export const SAMPLE_AUDIOS: AudioWithProfile[] = [
     file_size: 2450000,
     duration_seconds: 124,
     status: 'published',
+    is_pinned: false,
     created_at: new Date(Date.now() - 1000 * 60 * 35).toISOString(), // hace 35 minutos
     updated_at: new Date(Date.now() - 1000 * 60 * 35).toISOString(),
     comments_count: 5,
@@ -33,6 +34,7 @@ export const SAMPLE_AUDIOS: AudioWithProfile[] = [
     file_size: 4100000,
     duration_seconds: 198,
     status: 'published',
+    is_pinned: false,
     created_at: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(), // hace 2 horas
     updated_at: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
     comments_count: 8,
@@ -54,6 +56,7 @@ export const SAMPLE_AUDIOS: AudioWithProfile[] = [
     file_size: 3200000,
     duration_seconds: 145,
     status: 'published',
+    is_pinned: false,
     created_at: new Date(Date.now() - 1000 * 60 * 60 * 5).toISOString(), // hace 5 horas
     updated_at: new Date(Date.now() - 1000 * 60 * 60 * 5).toISOString(),
     comments_count: 3,
@@ -75,6 +78,7 @@ export const SAMPLE_AUDIOS: AudioWithProfile[] = [
     file_size: 1980000,
     duration_seconds: 92,
     status: 'published',
+    is_pinned: false,
     created_at: new Date(Date.now() - 1000 * 60 * 60 * 14).toISOString(), // hace 14 horas
     updated_at: new Date(Date.now() - 1000 * 60 * 60 * 14).toISOString(),
     comments_count: 12,
@@ -96,6 +100,7 @@ export const SAMPLE_AUDIOS: AudioWithProfile[] = [
     file_size: 2100000,
     duration_seconds: 88,
     status: 'published',
+    is_pinned: false,
     created_at: new Date(Date.now() - 1000 * 60 * 60 * 26).toISOString(), // ayer
     updated_at: new Date(Date.now() - 1000 * 60 * 60 * 26).toISOString(),
     comments_count: 15,
@@ -117,6 +122,7 @@ export const SAMPLE_AUDIOS: AudioWithProfile[] = [
     file_size: 2800000,
     duration_seconds: 135,
     status: 'published',
+    is_pinned: false,
     created_at: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString(), // hace 2 días
     updated_at: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString(),
     comments_count: 9,

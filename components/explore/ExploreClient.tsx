@@ -1,40 +1,46 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { Search, Compass, ArrowUpDown } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { ArrowRight, Clock, Headphones, Pause, Pin, Play, Sparkles } from 'lucide-react';
 import type { AudioWithProfile } from '@/types/database';
-import { AUDIO_CATEGORIES } from '@/lib/validations/audio';
 import { createClient } from '@/lib/supabase/client';
-import { AudioCard } from '@/components/audio/AudioCard';
-import { Button } from '@/components/ui/Button';
-import { AudioCardSkeleton } from '@/components/ui/LoadingState';
-import { EmptyState } from '@/components/ui/EmptyState';
-import { SAMPLE_AUDIOS } from '@/lib/data/sampleAudios';
+import { useAudio } from '@/lib/context/AudioContext';
+import { useAuth } from '@/lib/context/AuthContext';
+import { formatDuration, formatRelativeTime, getInitials } from '@/lib/utils/formatters';
+import { getPublicStorageUrl } from '@/lib/utils/audio';
 
-const PAGE_SIZE = 9;
+const REMOVED_AUDIO_IDS = new Set([
+  '1b5b54c1-0b23-4d09-b390-255c7fee0e3a',
+  'b4db15f2-0c4a-41a0-a348-8760b106c989',
+]);
 
 export function ExploreClient() {
   const [audios, setAudios] = useState<AudioWithProfile[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
-  const [page, setPage] = useState(0);
-  const [hasMore, setHasMore] = useState(false);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
-
+  const { currentAudio, isPlaying, toggleAudio } = useAudio();
+  const { user } = useAuth();
   const supabase = createClient();
 
-  const fetchAudios = useCallback(
-    async (pageNum: number, isInitial: boolean = false) => {
-      if (isInitial) {
-        setIsLoading(true);
-      } else {
-        setIsLoadingMore(true);
-      }
+  useEffect(() => {
+    const loadRecentVoices = async () => {
+      let { data, error } = await supabase
+        .from('audios')
+        .select(`
+          *,
+          profile:profiles (
+            id,
+            username,
+            display_name,
+            avatar_path
+          )
+        `)
+        .eq('status', 'published')
+        .order('is_pinned', { ascending: false })
+        .order('created_at', { ascending: false })
+        .limit(6);
 
-      try {
-        let query = supabase
+      if (error) {
+        ({ data, error } = await supabase
           .from('audios')
           .select(`
             *,
@@ -44,192 +50,168 @@ export function ExploreClient() {
               display_name,
               avatar_path
             )
-          `, { count: 'exact' })
+          `)
           .eq('status', 'published')
-          .order('created_at', { ascending: sortOrder === 'desc' ? false : true })
-          .range(pageNum * PAGE_SIZE, (pageNum + 1) * PAGE_SIZE - 1);
-
-        if (selectedCategory !== 'all') {
-          query = query.eq('category', selectedCategory);
-        }
-
-        if (searchQuery.trim()) {
-          query = query.or(`title.ilike.%${searchQuery.trim()}%,description.ilike.%${searchQuery.trim()}%`);
-        }
-
-        const { data, count, error } = await query;
-
-        if (!error && data && data.length > 0) {
-          const list = data as unknown as AudioWithProfile[];
-          if (pageNum === 0) {
-            setAudios(list);
-          } else {
-            setAudios((prev) => [...prev, ...list]);
-          }
-
-          const total = count || 0;
-          setHasMore((pageNum + 1) * PAGE_SIZE < total);
-        } else {
-          // Fallback a los audios muestra
-          let demoList = [...SAMPLE_AUDIOS];
-          if (selectedCategory !== 'all') {
-            demoList = demoList.filter((a) => a.category === selectedCategory);
-          }
-          if (searchQuery.trim()) {
-            const term = searchQuery.toLowerCase();
-            demoList = demoList.filter(
-              (a) =>
-                a.title.toLowerCase().includes(term) ||
-                (a.description && a.description.toLowerCase().includes(term))
-            );
-          }
-          if (sortOrder === 'asc') {
-            demoList.reverse();
-          }
-          setAudios(demoList);
-          setHasMore(false);
-        }
-      } catch {
-        let demoList = [...SAMPLE_AUDIOS];
-        if (selectedCategory !== 'all') {
-          demoList = demoList.filter((a) => a.category === selectedCategory);
-        }
-        if (searchQuery.trim()) {
-          const term = searchQuery.toLowerCase();
-          demoList = demoList.filter(
-            (a) =>
-              a.title.toLowerCase().includes(term) ||
-              (a.description && a.description.toLowerCase().includes(term))
-          );
-        }
-        setAudios(demoList);
-      } finally {
-        setIsLoading(false);
-        setIsLoadingMore(false);
+          .order('created_at', { ascending: false })
+          .limit(6));
       }
-    },
-    [supabase, selectedCategory, searchQuery, sortOrder]
-  );
 
-  useEffect(() => {
-    setPage(0);
-    fetchAudios(0, true);
-  }, [fetchAudios]);
+      if (!error && data && data.length > 0) {
+        setAudios(
+          (data as unknown as AudioWithProfile[]).filter(
+            (audio) => !REMOVED_AUDIO_IDS.has(audio.id)
+          )
+        );
+      } else if (error) {
+        setAudios([]);
+      }
+    };
 
-  const handleLoadMore = () => {
-    const nextPage = page + 1;
-    setPage(nextPage);
-    fetchAudios(nextPage, false);
+    loadRecentVoices();
+  }, [supabase]);
+
+  const handlePlay = (audio: AudioWithProfile) => {
+    const authorName = audio.profile?.display_name || audio.profile?.username || 'Anónimo';
+    toggleAudio({
+      id: audio.id,
+      title: audio.title,
+      authorName,
+      url: getPublicStorageUrl(audio.storage_path),
+      duration: audio.duration_seconds || undefined,
+    });
+  };
+
+  const handlePin = async (audio: AudioWithProfile) => {
+    if (!user || user.id !== audio.user_id) return;
+
+    const { data, error } = await supabase
+      .from('audios')
+      .update({ is_pinned: !audio.is_pinned })
+      .eq('id', audio.id)
+      .eq('user_id', user.id)
+      .select()
+      .single();
+
+    if (error || !data) {
+      alert(`No se pudo ${audio.is_pinned ? 'quitar de arriba' : 'fijar arriba'} el audio.`);
+      return;
+    }
+
+    setAudios((current) =>
+      [...current.map((item) => item.id === audio.id ? { ...item, is_pinned: data.is_pinned } : item)]
+        .sort((first, second) => {
+          if (first.is_pinned !== second.is_pinned) return first.is_pinned ? -1 : 1;
+          return new Date(second.created_at).getTime() - new Date(first.created_at).getTime();
+        })
+    );
   };
 
   return (
-    <div className="space-y-8">
-      {/* Encabezado */}
-      <div>
-        <div className="flex items-center space-x-2 text-teal-400 text-sm font-semibold mb-1">
-          <Compass className="w-4 h-4" />
-          <span>Explorar comunidad</span>
-        </div>
-        <h1 className="text-3xl sm:text-4xl font-black text-white tracking-tight">
-          Catálogo de audios
-        </h1>
-        <p className="text-sm sm:text-base text-petroleo-200 mt-1 max-w-xl">
-          Descubre grabaciones de audio publicadas por creadores y miembros de toda la comunidad.
-        </p>
-      </div>
-
-      {/* Controles de Búsqueda, Filtro y Orden */}
-      <div className="bg-deepblue-800/60 rounded-3xl p-5 sm:p-6 border border-deepblue-600/50 shadow-card backdrop-blur-xl space-y-4">
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-          {/* Búsqueda */}
-          <div className="relative flex-1">
-            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-teal-400/80 pointer-events-none" />
-            <input
-              type="text"
-              placeholder="Buscar por título o descripción..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 rounded-2xl border border-deepblue-600/70 bg-deepblue-900/90 text-sm text-white placeholder:text-petroleo-300 focus:outline-none focus:ring-2 focus:ring-teal-400/50 focus:border-teal-400 transition-all shadow-inner"
-            />
+    <div className="mx-auto max-w-6xl space-y-10 sm:space-y-12">
+      <section className="relative isolate overflow-hidden rounded-[2rem] border border-deepblue-600/60 bg-gradient-to-br from-deepblue-850 via-deepblue-800 to-teal-950/70 p-7 shadow-2xl sm:p-12 lg:p-16">
+        <div className="relative z-10 max-w-3xl space-y-5">
+          <div className="inline-flex items-center gap-2 rounded-full border border-menta-300/30 bg-menta-300/10 px-3.5 py-1.5 text-xs font-semibold text-menta-300 shadow-sm">
+            <Sparkles className="h-3.5 w-3.5 text-dorado-300" />
+            <span>Una mirada diferente a la comunidad</span>
           </div>
-
-          {/* Orden */}
-          <button
-            onClick={() => setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc')}
-            className="flex items-center justify-center space-x-2 px-4 py-2.5 rounded-2xl border border-deepblue-600/60 bg-deepblue-750 hover:bg-deepblue-700 text-xs font-bold text-petroleo-100 transition-colors"
-          >
-            <ArrowUpDown className="w-3.5 h-3.5 text-teal-400" />
-            <span>
-              {sortOrder === 'desc' ? 'Más recientes' : 'Más antiguos'}
-            </span>
-          </button>
+          <h1 className="max-w-3xl text-4xl font-black leading-[1.05] tracking-tight text-white sm:text-5xl lg:text-6xl">
+            ¿Quién tiene la voz?
+          </h1>
+          <p className="max-w-2xl text-sm leading-7 text-petroleo-100 sm:text-base">
+            Un espacio para compartir perspectivas y repensar la forma en que convivimos con los perros.
+          </p>
         </div>
+        <div className="pointer-events-none absolute -bottom-24 -right-16 h-96 w-96 rounded-full bg-teal-500/20 blur-3xl" />
+        <div className="pointer-events-none absolute right-24 top-0 h-56 w-56 rounded-full bg-dorado-400/10 blur-3xl" />
+      </section>
 
-        {/* Secciones */}
-        <div className="flex items-center space-x-2 overflow-x-auto pb-1 scrollbar-none">
-          <button
-            onClick={() => setSelectedCategory('all')}
-            className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all shrink-0 ${
-              selectedCategory === 'all'
-                ? 'bg-gradient-to-r from-teal-500 to-teal-600 text-white shadow-glowTeal'
-                : 'bg-deepblue-750/70 text-petroleo-200 hover:text-white hover:bg-deepblue-700/80 border border-deepblue-600/40'
-            }`}
-          >
-            Todas
-          </button>
-
-          {AUDIO_CATEGORIES.map((cat) => (
-            <button
-              key={cat.value}
-              onClick={() => setSelectedCategory(cat.value)}
-              className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all shrink-0 ${
-                selectedCategory === cat.value
-                  ? 'bg-gradient-to-r from-teal-500 to-teal-600 text-white shadow-glowTeal'
-                  : 'bg-deepblue-750/70 text-petroleo-200 hover:text-white hover:bg-deepblue-700/80 border border-deepblue-600/40'
-              }`}
-            >
-              {cat.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Resultados */}
-      {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <AudioCardSkeleton key={i} />
-          ))}
-        </div>
-      ) : audios.length === 0 ? (
-        <EmptyState
-          icon="headphones"
-          title="No se encontraron publicaciones"
-          description="Intenta buscar con otros términos o elige otra categoría para encontrar más audios."
-          actionHref="/audios/new"
-          actionText="Publicar un audio"
-        />
-      ) : (
-        <>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {audios.map((audio) => (
-              <AudioCard key={audio.id} audio={audio} />
-            ))}
+      <section className="space-y-6 rounded-[2rem] border border-deepblue-700/50 bg-deepblue-900/30 p-5 sm:p-8">
+        <div className="flex items-center justify-between gap-4 border-b border-deepblue-700/60 pb-5">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-teal-300">Voces de la comunidad</p>
+            <h2 className="mt-1 text-xl font-black text-white sm:text-2xl">Lo que otros quieren compartir</h2>
           </div>
+          <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-teal-400/20 bg-teal-400/10">
+            <Headphones className="h-5 w-5 text-teal-300" />
+          </div>
+        </div>
 
-          {hasMore && (
-            <div className="flex justify-center pt-6">
-              <Button
-                variant="outline"
-                onClick={handleLoadMore}
-                isLoading={isLoadingMore}
-              >
-                Cargar más audios
-              </Button>
+        {audios.length === 0 && (
+          <div className="grid min-h-36 place-items-center rounded-2xl border border-dashed border-teal-400/20 bg-deepblue-950/25 px-6 py-10 text-center">
+            <div className="max-w-md">
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-teal-400/10 text-teal-300 ring-1 ring-teal-300/20">
+                <Headphones className="h-5 w-5" />
+              </div>
+              <p className="mt-4 text-sm font-semibold text-white">Aún no hay voces para mostrar</p>
+              <p className="mt-1 text-xs leading-5 text-petroleo-300">
+                Cuando alguien comparta un audio, aparecerá aquí para que la comunidad pueda escucharlo.
+              </p>
             </div>
-          )}
-        </>
-      )}
+          </div>
+        )}
+
+        <div className="grid gap-3 md:grid-cols-2">
+          {audios.map((audio, index) => {
+            const authorName = audio.profile?.display_name || audio.profile?.username || 'Anónimo';
+            const isCurrent = currentAudio?.id === audio.id;
+            const isCurrentlyPlaying = isCurrent && isPlaying;
+
+            return (
+              <article
+                key={audio.id}
+                className="group flex items-center gap-4 rounded-2xl border border-deepblue-600/60 bg-deepblue-800/60 p-4 transition-all hover:-translate-y-0.5 hover:border-teal-400/60 hover:bg-deepblue-750/80"
+              >
+                <button
+                  type="button"
+                  onClick={() => handlePlay(audio)}
+                  aria-label={isCurrentlyPlaying ? `Pausar ${audio.title}` : `Escuchar ${audio.title}`}
+                  className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-teal-500/20 text-teal-200 ring-1 ring-teal-400/30 transition-colors hover:bg-teal-500 hover:text-white"
+                >
+                  {isCurrentlyPlaying ? <Pause className="h-5 w-5 fill-current" /> : <Play className="ml-0.5 h-5 w-5 fill-current" />}
+                </button>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gradient-to-tr from-teal-600 to-teal-400 text-[9px] font-bold text-white">
+                      {getInitials(authorName)}
+                    </div>
+                    <span className="truncate text-xs font-semibold text-teal-200">{authorName}</span>
+                  </div>
+                  <Link href={`/audios/${audio.id}`} className="mt-1 block truncate text-sm font-extrabold text-white transition-colors group-hover:text-menta-200">
+                    {audio.title}
+                  </Link>
+                  <div className="mt-1 flex items-center gap-3 text-[11px] text-petroleo-300">
+                    <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{formatDuration(audio.duration_seconds)}</span>
+                    <span>{formatRelativeTime(audio.created_at)}</span>
+                  </div>
+                </div>
+                {user?.id === audio.user_id && (
+                  <button
+                    type="button"
+                    onClick={() => handlePin(audio)}
+                    aria-label={audio.is_pinned ? 'Quitar de arriba' : 'Fijar arriba'}
+                    title={audio.is_pinned ? 'Quitar de arriba' : 'Fijar arriba'}
+                    className={`rounded-lg p-2 transition-colors ${
+                      audio.is_pinned
+                        ? 'bg-dorado-300/20 text-dorado-300'
+                        : 'text-petroleo-300 hover:bg-teal-300/10 hover:text-teal-200'
+                    }`}
+                  >
+                    <Pin className="h-4 w-4" />
+                  </button>
+                )}
+                <span className="hidden text-2xl font-black text-teal-400/30 sm:block">{String(index + 1).padStart(2, '0')}</span>
+              </article>
+            );
+          })}
+        </div>
+      </section>
+
+      <div className="flex justify-center">
+        <Link href="/audios/new" className="inline-flex items-center gap-2 rounded-xl border border-teal-300/30 bg-teal-300/10 px-5 py-3 text-sm font-bold text-teal-100 transition-colors hover:bg-teal-300/20">
+          Comparte tu propia voz
+          <ArrowRight className="h-4 w-4" />
+        </Link>
+      </div>
     </div>
   );
 }

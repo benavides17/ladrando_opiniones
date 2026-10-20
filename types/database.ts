@@ -64,6 +64,7 @@ export type Database = {
           file_size: number;
           duration_seconds: number | null;
           status: string;
+          is_pinned: boolean;
           created_at: string;
           updated_at: string;
         };
@@ -78,6 +79,7 @@ export type Database = {
           file_size: number;
           duration_seconds?: number | null;
           status?: string;
+          is_pinned?: boolean;
           created_at?: string;
           updated_at?: string;
         };
@@ -92,6 +94,7 @@ export type Database = {
           file_size?: number;
           duration_seconds?: number | null;
           status?: string;
+          is_pinned?: boolean;
           created_at?: string;
           updated_at?: string;
         };
